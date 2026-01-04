@@ -1,173 +1,107 @@
 const socket = io();
+let me = null, activeChat = { type: null, id: null }, onlineUsers = new Set();
 
-let me = null;
-let activeChat = { type: null, id: null };
-let onlineUsers = new Set();
-
-// --- KEYBOARD HANDLING (UPDATED) ---
 function handleKey(e, type) {
-    // 1. Enter Key Logic
     if (e.key === 'Enter') {
-        e.preventDefault(); // Stop default behavior
+        e.preventDefault();
         if (type === 'login') doLogin();
         if (type === 'chat') sendMsg();
+        if (type === 'admin_user') adminCreateUser();
+        if (type === 'admin_group') adminCreateGroup();
         return;
     }
-
-    // 2. Arrow Key Navigation for Login
     if (type === 'login') {
-        const target = e.target;
-        
-        if (e.key === 'ArrowDown') {
-            e.preventDefault(); // Stop cursor from moving to end of text
-            if (target.id === 'login-user') document.getElementById('login-pass').focus();
-            else if (target.id === 'login-pass') document.getElementById('login-btn').focus();
-        }
-        
-        if (e.key === 'ArrowUp') {
-            e.preventDefault(); 
-            if (target.id === 'login-pass') document.getElementById('login-user').focus();
-            else if (target.id === 'login-btn') document.getElementById('login-pass').focus();
-        }
+        const t = e.target.id;
+        if (e.key === 'ArrowDown') t === 'login-user' ? document.getElementById('login-pass').focus() : document.getElementById('login-btn').focus();
+        if (e.key === 'ArrowUp') t === 'login-pass' ? document.getElementById('login-user').focus() : document.getElementById('login-pass').focus();
     }
 }
 
 function doLogin() {
-    const u = document.getElementById('login-user').value;
-    const p = document.getElementById('login-pass').value;
+    const u = document.getElementById('login-user').value, p = document.getElementById('login-pass').value;
     if (u && p) socket.emit('login', { username: u, password: p });
 }
-
 function logout() { location.reload(); }
 
-// --- SOCKET EVENTS ---
-socket.on('login_error', (msg) => {
-    document.getElementById('login-error').innerText = msg;
-});
-
-socket.on('login_success', (user) => {
+socket.on('login_error', msg => document.getElementById('login-error').innerText = msg);
+socket.on('login_success', user => {
     me = user;
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('app-view').classList.remove('hidden');
-
     if (me.isAdmin) {
         document.getElementById('admin-badge').classList.remove('hidden');
         document.getElementById('admin-tab-btn').classList.remove('hidden');
     }
 });
+socket.on('init_data', d => { onlineUsers = new Set(d.online_ids); renderSidebar(d.users, d.groups); });
+socket.on('refresh_data', d => renderSidebar(d.users, d.groups));
+socket.on('notification', msg => alert(msg));
 
-socket.on('init_data', ({ users, groups, online_ids }) => {
-    onlineUsers = new Set(online_ids);
-    renderSidebar(users, groups);
-});
-
-socket.on('refresh_data', ({ users, groups }) => {
-    renderSidebar(users, groups);
-});
-
-socket.on('notification', (msg) => alert(msg));
-
-// --- ADMIN FUNCTIONS ---
 function adminCreateUser() {
-    const u = document.getElementById('new-user-name').value;
-    const p = document.getElementById('new-user-pass').value;
-    if (u && p) {
-        socket.emit('admin_create_user', { newUsername: u, newPassword: p });
-        document.getElementById('new-user-name').value = '';
-        document.getElementById('new-user-pass').value = '';
-    } else {
-        alert("Please enter both username and password");
-    }
+    const u = document.getElementById('new-user-name').value, p = document.getElementById('new-user-pass').value;
+    if (u && p) { socket.emit('admin_create_user', { newUsername: u, newPassword: p }); document.getElementById('new-user-name').value=''; document.getElementById('new-user-pass').value=''; document.getElementById('new-user-name').focus(); }
 }
-
 function adminCreateGroup() {
     const g = document.getElementById('new-group-name').value;
-    if (g) {
-        socket.emit('admin_create_group', { groupName: g });
-        document.getElementById('new-group-name').value = '';
-    }
+    if (g) { socket.emit('admin_create_group', { groupName: g }); document.getElementById('new-group-name').value=''; }
 }
 
-function showSection(section) {
-    if (section === 'chats') {
-        document.getElementById('chat-list').classList.remove('hidden');
-        document.getElementById('admin-panel').classList.add('hidden');
-    } else {
-        document.getElementById('chat-list').classList.add('hidden');
-        document.getElementById('admin-panel').classList.remove('hidden');
-    }
+function showSection(s) {
+    document.getElementById('chat-list').classList.toggle('hidden', s !== 'chats');
+    document.getElementById('admin-panel').classList.toggle('hidden', s !== 'admin');
 }
 
-// --- RENDER & CHAT ---
 function renderSidebar(users, groups) {
-    const list = document.getElementById('chat-list');
-    list.innerHTML = '';
+    const l = document.getElementById('chat-list'); l.innerHTML = '';
+    groups.forEach(g => l.appendChild(createItem(g.id, g.name, g.avatar_color, 'group')));
+    users.forEach(u => { if (u.id !== me.id) l.appendChild(createItem(u.id, u.username, u.avatar_color, 'user')); });
+}
+function createItem(id, n, c, t) {
+    const d = document.createElement('div'); d.className = 'item'; d.id = `item-${t}-${id}`;
+    d.onclick = () => loadChat(t, id, n, d);
+    d.innerHTML = `<div class="avatar" style="background:${c}">${n[0].toUpperCase()}</div><span>${n}</span>`;
+    return d;
+}
 
-    // Groups
-    groups.forEach(g => list.appendChild(createItem(g.id, g.name, g.avatar_color, 'group')));
+// --- NEW MOBILE LOGIC ---
+function loadChat(t, id, n, el) {
+    activeChat = { type: t, id };
+    document.querySelectorAll('.item').forEach(i => i.classList.remove('active')); el.classList.add('active');
+    document.getElementById('chat-title').innerText = n;
+    document.getElementById('chat-status').innerText = (t === 'user' && onlineUsers.has(id)) ? 'Online' : '';
+    document.getElementById('messages').innerHTML = '';
     
-    // Users
-    users.forEach(u => {
-        if (u.id !== me.id) list.appendChild(createItem(u.id, u.username, u.avatar_color, 'user'));
-    });
+    // Toggle Mobile View
+    document.body.classList.add('chat-open'); 
 }
 
-function createItem(id, name, color, type) {
-    const div = document.createElement('div');
-    div.className = 'item';
-    div.id = `item-${type}-${id}`;
-    div.onclick = () => loadChat(type, id, name, div);
-    
-    div.innerHTML = `
-        <div class="avatar" style="background:${color}">${name[0].toUpperCase()}</div>
-        <span>${name}</span>
-    `;
-    return div;
+function closeChat() {
+    // Go back to list on mobile
+    document.body.classList.remove('chat-open');
+    activeChat = { type: null, id: null };
 }
-
-function loadChat(type, id, name, el) {
-    activeChat = { type, id };
-    document.querySelectorAll('.item').forEach(i => i.classList.remove('active'));
-    el.classList.add('active');
-
-    document.getElementById('chat-title').innerText = name;
-    document.getElementById('chat-status').innerText = (type === 'user' && onlineUsers.has(id)) ? 'Online' : '';
-    document.getElementById('messages').innerHTML = ''; 
-}
+// ------------------------
 
 function sendMsg() {
-    const input = document.getElementById('msg-input');
-    const txt = input.value.trim();
+    const i = document.getElementById('msg-input'), txt = i.value.trim();
     if (!txt || !activeChat.id) return;
-
-    socket.emit('send_message', {
-        sender_id: me.id,
-        target_id: activeChat.id,
-        is_group: activeChat.type === 'group',
-        content: txt
-    });
-    input.value = '';
+    socket.emit('send_message', { sender_id: me.id, target_id: activeChat.id, is_group: activeChat.type === 'group', content: txt });
+    i.value = '';
 }
 
-socket.on('receive_message', (msg) => {
-    const isRelevant = 
-        (msg.is_group && activeChat.type === 'group' && msg.group_id === activeChat.id) ||
-        (!msg.is_group && activeChat.type === 'user' && (msg.sender_id === activeChat.id || msg.receiver_id === activeChat.id));
+socket.on('receive_message', msg => {
+    const mid = parseInt(me.id), sid = parseInt(msg.sender_id), rid = parseInt(msg.receiver_id), gid = parseInt(msg.group_id), aid = parseInt(activeChat.id);
+    const relevant = (msg.is_group && activeChat.type === 'group' && gid === aid) || (!msg.is_group && activeChat.type === 'user' && (sid === aid || rid === aid));
     
-    if (isRelevant) {
-        const div = document.createElement('div');
-        div.className = `msg ${msg.sender_id === me.id ? 'sent' : 'received'}`;
-        div.innerHTML = `${msg.content} <span class="meta">${msg.timestamp}</span>`;
-        document.getElementById('messages').appendChild(div);
-        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    if (relevant) {
+        const d = document.createElement('div'); d.className = `msg ${sid === mid ? 'sent' : 'received'}`;
+        let ticks = sid === mid ? '<span class="material-icons tick">done</span>' : '';
+        d.innerHTML = `${msg.content} <div class="meta">${msg.timestamp} ${ticks}</div>`;
+        const c = document.getElementById('messages'); c.appendChild(d); c.scrollTop = c.scrollHeight;
     }
 });
 
 socket.on('user_status', ({ id, status }) => {
-    if (status === 'online') onlineUsers.add(id);
-    else onlineUsers.delete(id);
-    
-    if (activeChat.type === 'user' && activeChat.id === id) {
-        document.getElementById('chat-status').innerText = status === 'online' ? 'Online' : '';
-    }
+    status === 'online' ? onlineUsers.add(id) : onlineUsers.delete(id);
+    if (activeChat.type === 'user' && activeChat.id === id) document.getElementById('chat-status').innerText = status === 'online' ? 'Online' : '';
 });
