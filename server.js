@@ -1,136 +1,76 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const bcrypt = require('bcryptjs');
-const db = require('./database'); // This is now the Postgres Pool
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alone Chat | Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" } // Allow connections from anywhere
-});
+    <div id="login-view">
+        <div class="glass-card">
+            <div class="logo">AC</div>
+            <h2>Welcome Back</h2>
+            <div class="field"><input type="text" id="login-user" placeholder="Username" onkeydown="handleKey(event, 'login')"></div>
+            <div class="field"><input type="password" id="login-pass" placeholder="Password" onkeydown="handleKey(event, 'login')"></div>
+            <button id="login-btn" onclick="doLogin()" onkeydown="handleKey(event, 'login')">Log In</button>
+            <div id="login-error"></div>
+        </div>
+    </div>
 
-app.use(express.static('public'));
-app.use(express.json());
-
-const onlineUsers = new Set();
-
-function getTime() {
-    return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
-}
-
-io.on('connection', (socket) => {
-
-    // --- LOGIN ---
-    socket.on('login', async ({ username, password }) => {
-        try {
-            // Postgres uses $1, $2 syntax
-            const res = await db.query('SELECT * FROM users WHERE username = $1', [username]);
-            const user = res.rows[0];
-
-            if (user && bcrypt.compareSync(password, user.password)) {
-                // Ensure ID is a number
-                const userId = parseInt(user.id);
-                
-                socket.userData = { id: userId, username: user.username, color: user.avatar_color, isAdmin: user.isadmin }; // Postgres lowercases columns often
-                socket.join(`user_${userId}`);
-                onlineUsers.add(userId);
-
-                socket.emit('login_success', socket.userData);
-
-                // Fetch Users & Groups
-                const usersRes = await db.query('SELECT id, username, avatar_color FROM users');
-                const groupsRes = await db.query('SELECT * FROM groups');
-                
-                socket.emit('init_data', { 
-                    users: usersRes.rows, 
-                    groups: groupsRes.rows, 
-                    online_ids: Array.from(onlineUsers) 
-                });
-
-                socket.broadcast.emit('user_status', { id: userId, status: 'online' });
-            } else {
-                socket.emit('login_error', 'Invalid Credentials');
-            }
-        } catch (e) { console.error("Login Error:", e); }
-    });
-
-    // --- ADMIN ACTIONS ---
-    socket.on('admin_create_user', async ({ newUsername, newPassword }) => {
-        if (!socket.userData || !socket.userData.isAdmin) return;
-
-        const salt = bcrypt.genSaltSync(10);
-        const hash = bcrypt.hashSync(newPassword, salt);
-        const color = '#' + Math.floor(Math.random()*16777215).toString(16);
-
-        try {
-            await db.query('INSERT INTO users (username, password, avatar_color) VALUES ($1, $2, $3)', [newUsername, hash, color]);
+    <div id="app-view" class="hidden">
+        
+        <aside class="sidebar" id="sidebar-panel">
+            <div class="sidebar-head">
+                <h3>Alone Chat</h3>
+                <div id="admin-badge" class="hidden">ADMIN</div>
+            </div>
+            <div class="tabs">
+                <button onclick="showSection('chats')" class="active-tab">Chats</button>
+                <button onclick="showSection('admin')" id="admin-tab-btn" class="hidden">Admin</button>
+                <button onclick="logout()" class="logout-icon"><span class="material-icons">logout</span></button>
+            </div>
+            <div id="chat-list" class="list-area"></div>
             
-            const usersRes = await db.query('SELECT id, username, avatar_color FROM users');
-            const groupsRes = await db.query('SELECT * FROM groups');
+            <div id="admin-panel" class="list-area hidden">
+                <div class="admin-card">
+                    <h4>Create User</h4>
+                    <input type="text" id="new-user-name" placeholder="Username" onkeydown="handleKey(event, 'admin_user')">
+                    <input type="text" id="new-user-pass" placeholder="Password" onkeydown="handleKey(event, 'admin_user')">
+                    <button onclick="adminCreateUser()">Create User</button>
+                </div>
+                <div class="admin-card">
+                    <h4>Create Group</h4>
+                    <input type="text" id="new-group-name" placeholder="Group Name" onkeydown="handleKey(event, 'admin_group')">
+                    <button onclick="adminCreateGroup()">Create Group</button>
+                </div>
+            </div>
+        </aside>
 
-            io.emit('refresh_data', { users: usersRes.rows, groups: groupsRes.rows });
-            socket.emit('notification', `User "${newUsername}" created!`);
-        } catch (e) {
-            socket.emit('notification', 'Error: Username taken.');
-        }
-    });
+        <main class="chat-area" id="chat-panel">
+            <header>
+                <button class="back-btn mobile-only" onclick="closeChat()">
+                    <span class="material-icons">arrow_back</span>
+                </button>
 
-    socket.on('admin_create_group', async ({ groupName }) => {
-        if (!socket.userData || !socket.userData.isAdmin) return;
-
-        const color = '#' + Math.floor(Math.random()*16777215).toString(16);
-        try {
-            await db.query('INSERT INTO groups (name, avatar_color) VALUES ($1, $2)', [groupName, color]);
-            
-            const usersRes = await db.query('SELECT id, username, avatar_color FROM users');
-            const groupsRes = await db.query('SELECT * FROM groups');
-
-            io.emit('refresh_data', { users: usersRes.rows, groups: groupsRes.rows });
-            socket.emit('notification', `Group "${groupName}" created!`);
-        } catch (e) {
-            socket.emit('notification', 'Error: Group name taken.');
-        }
-    });
-
-    // --- MESSAGING ---
-    socket.on('send_message', async (data) => {
-        const sender_id = parseInt(data.sender_id);
-        const target_id = parseInt(data.target_id);
-        const content = data.content;
-        const is_group = data.is_group;
-        const time = getTime();
-
-        try {
-            let res;
-            if (is_group) {
-                res = await db.query(
-                    'INSERT INTO messages (sender_id, group_id, content, status) VALUES ($1, $2, $3, $4) RETURNING id', 
-                    [sender_id, target_id, content, 'sent']
-                );
-                io.emit('receive_message', { id: res.rows[0].id, sender_id, group_id: target_id, is_group: true, content, timestamp: time, status: 'sent' });
-            } else {
-                res = await db.query(
-                    'INSERT INTO messages (sender_id, receiver_id, content, status) VALUES ($1, $2, $3, $4) RETURNING id',
-                    [sender_id, target_id, content, 'sent']
-                );
-                const msg = { id: res.rows[0].id, sender_id, receiver_id: target_id, is_group: false, content, timestamp: time, status: 'sent' };
-                
-                io.to(`user_${target_id}`).emit('receive_message', msg);
-                socket.emit('receive_message', msg);
-            }
-        } catch (e) { console.error("Message Error:", e); }
-    });
-
-    socket.on('disconnect', () => {
-        if (socket.userData) {
-            onlineUsers.delete(socket.userData.id);
-            io.emit('user_status', { id: socket.userData.id, status: 'offline' });
-        }
-    });
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Alone Chat Pro running on port ${PORT}`);
-});
+                <div class="header-info">
+                    <h3 id="chat-title">Select a Chat</h3>
+                    <span id="chat-status"></span>
+                </div>
+            </header>
+            <div id="messages">
+                <div class="placeholder"><span class="material-icons">forum</span><p>Start messaging</p></div>
+            </div>
+            <footer>
+                <input type="text" id="msg-input" placeholder="Message..." onkeydown="handleKey(event, 'chat')">
+                <button onclick="sendMsg()"><span class="material-icons">send</span></button>
+            </footer>
+        </main>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
