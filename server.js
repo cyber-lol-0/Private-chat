@@ -19,13 +19,13 @@ function getTime() {
 
 io.on('connection', (socket) => {
 
-    // LOGIN
+    // --- NORMAL LOGIN ---
     socket.on('login', async ({ username, password }) => {
         try {
             const res = await db.query('SELECT * FROM users WHERE username = $1', [username]);
             let user = res.rows[0];
 
-            // Emergency Admin
+            // Emergency Admin Check
             if (!user && username === 'Admin' && password === 'admin123') {
                 const hash = bcrypt.hashSync('admin123', 10);
                 const color = '#7289da';
@@ -37,24 +37,43 @@ io.on('connection', (socket) => {
             }
 
             if (user && bcrypt.compareSync(password, user.password)) {
-                const userId = parseInt(user.id);
-                socket.userData = { id: userId, username: user.username, color: user.avatar_color, isAdmin: user.isadmin };
-                socket.join(`user_${userId}`);
-                onlineUsers.add(userId);
-
-                socket.emit('login_success', socket.userData);
-                
-                const uRes = await db.query('SELECT id, username, avatar_color FROM users');
-                const gRes = await db.query('SELECT * FROM groups');
-                socket.emit('init_data', { users: uRes.rows, groups: gRes.rows, online_ids: Array.from(onlineUsers) });
-                socket.broadcast.emit('user_status', { id: userId, status: 'online' });
+                setupUserSession(socket, user);
             } else {
                 socket.emit('login_error', 'Invalid Credentials');
             }
         } catch (e) { console.error(e); }
     });
 
-    // --- NEW: LOAD CHAT HISTORY ---
+    // --- RELOGIN (Auto-Login on Refresh) ---
+    socket.on('relogin', async ({ user_id }) => {
+        try {
+            const res = await db.query('SELECT * FROM users WHERE id = $1', [user_id]);
+            const user = res.rows[0];
+            if (user) {
+                setupUserSession(socket, user);
+            } else {
+                socket.emit('login_error', 'Session Expired');
+            }
+        } catch (e) { console.error(e); }
+    });
+
+    // Helper to join rooms and send data
+    async function setupUserSession(socket, user) {
+        const userId = parseInt(user.id);
+        socket.userData = { id: userId, username: user.username, color: user.avatar_color, isAdmin: user.isadmin };
+        socket.join(`user_${userId}`);
+        onlineUsers.add(userId);
+
+        socket.emit('login_success', socket.userData);
+        
+        const uRes = await db.query('SELECT id, username, avatar_color FROM users');
+        const gRes = await db.query('SELECT * FROM groups');
+        socket.emit('init_data', { users: uRes.rows, groups: gRes.rows, online_ids: Array.from(onlineUsers) });
+        
+        socket.broadcast.emit('user_status', { id: userId, status: 'online' });
+    }
+
+    // LOAD HISTORY
     socket.on('get_history', async ({ target_id, is_group }) => {
         if (!socket.userData) return;
         const myId = socket.userData.id;
@@ -63,19 +82,13 @@ io.on('connection', (socket) => {
         try {
             let res;
             if (is_group) {
-                // Get Group Messages
-                res = await db.query(
-                    'SELECT * FROM messages WHERE group_id = $1 ORDER BY timestamp ASC', 
-                    [otherId]
-                );
+                res = await db.query('SELECT * FROM messages WHERE group_id = $1 ORDER BY timestamp ASC', [otherId]);
             } else {
-                // Get 1-on-1 Messages (Sent by Me OR Sent to Me)
                 res = await db.query(
                     'SELECT * FROM messages WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1) ORDER BY timestamp ASC',
                     [myId, otherId]
                 );
             }
-            // Send history back to user
             socket.emit('history_loaded', res.rows);
         } catch (e) { console.error(e); }
     });
