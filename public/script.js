@@ -1,6 +1,22 @@
 const socket = io();
 let me = null, activeChat = { type: null, id: null }, onlineUsers = new Set();
 
+// --- 1. CHECK FOR SAVED LOGIN ON LOAD ---
+const savedUser = localStorage.getItem('alone_chat_user');
+if (savedUser) {
+    const user = JSON.parse(savedUser);
+    // Optimistically show app immediately
+    me = user;
+    document.getElementById('login-view').classList.add('hidden');
+    document.getElementById('app-view').classList.remove('hidden');
+    if (me.isAdmin) {
+        document.getElementById('admin-badge').classList.remove('hidden');
+        document.getElementById('admin-tab-btn').classList.remove('hidden');
+    }
+    // Tell server we are back
+    socket.emit('relogin', { user_id: user.id });
+}
+
 function handleKey(e, type) {
     if (e.key === 'Enter') {
         e.preventDefault();
@@ -21,11 +37,26 @@ function doLogin() {
     const u = document.getElementById('login-user').value, p = document.getElementById('login-pass').value;
     if (u && p) socket.emit('login', { username: u, password: p });
 }
-function logout() { location.reload(); }
 
-socket.on('login_error', msg => document.getElementById('login-error').innerText = msg);
+function logout() { 
+    // Clear saved login and reload
+    localStorage.removeItem('alone_chat_user');
+    location.reload(); 
+}
+
+socket.on('login_error', msg => {
+    // If auto-login failed, clear storage and show login screen
+    if(msg === 'Invalid Credentials' && localStorage.getItem('alone_chat_user')) {
+        logout();
+    }
+    document.getElementById('login-error').innerText = msg;
+});
+
 socket.on('login_success', user => {
     me = user;
+    // SAVE USER TO BROWSER STORAGE
+    localStorage.setItem('alone_chat_user', JSON.stringify(user));
+
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('app-view').classList.remove('hidden');
     if (me.isAdmin) {
@@ -33,6 +64,7 @@ socket.on('login_success', user => {
         document.getElementById('admin-tab-btn').classList.remove('hidden');
     }
 });
+
 socket.on('init_data', d => { onlineUsers = new Set(d.online_ids); renderSidebar(d.users, d.groups); });
 socket.on('refresh_data', d => renderSidebar(d.users, d.groups));
 socket.on('notification', msg => alert(msg));
@@ -68,14 +100,8 @@ function loadChat(t, id, n, el) {
     document.querySelectorAll('.item').forEach(i => i.classList.remove('active')); el.classList.add('active');
     document.getElementById('chat-title').innerText = n;
     document.getElementById('chat-status').innerText = (t === 'user' && onlineUsers.has(id)) ? 'Online' : '';
-    
-    // Clear Messages
     document.getElementById('messages').innerHTML = '';
-    
-    // REQUEST HISTORY
     socket.emit('get_history', { target_id: id, is_group: t === 'group' });
-
-    // Mobile View Toggle
     document.body.classList.add('chat-open'); 
 }
 
@@ -84,15 +110,10 @@ function closeChat() {
     activeChat = { type: null, id: null };
 }
 
-// --- NEW: DISPLAY HISTORY ---
 socket.on('history_loaded', (msgs) => {
     const container = document.getElementById('messages');
-    container.innerHTML = ''; // Clear placeholder
-    
-    msgs.forEach(msg => {
-        // Reuse the logic for creating bubbles
-        renderSingleMessage(msg);
-    });
+    container.innerHTML = '';
+    msgs.forEach(msg => renderSingleMessage(msg));
 });
 
 function sendMsg() {
@@ -105,25 +126,17 @@ function sendMsg() {
 socket.on('receive_message', msg => {
     const mid = parseInt(me.id), sid = parseInt(msg.sender_id), rid = parseInt(msg.receiver_id), gid = parseInt(msg.group_id), aid = parseInt(activeChat.id);
     const relevant = (msg.is_group && activeChat.type === 'group' && gid === aid) || (!msg.is_group && activeChat.type === 'user' && (sid === aid || rid === aid));
-    
-    if (relevant) {
-        renderSingleMessage(msg);
-    }
+    if (relevant) renderSingleMessage(msg);
 });
 
-// Helper to render one bubble
 function renderSingleMessage(msg) {
     const mid = parseInt(me.id);
     const sid = parseInt(msg.sender_id);
-    
     const d = document.createElement('div'); 
     d.className = `msg ${sid === mid ? 'sent' : 'received'}`;
     let ticks = sid === mid ? '<span class="material-icons tick">done</span>' : '';
-    
-    // Format timestamp nicely if possible, or use raw
     let time = msg.timestamp;
     if(time.includes('T')) time = new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
     d.innerHTML = `${msg.content} <div class="meta">${time} ${ticks}</div>`;
     const c = document.getElementById('messages'); 
     c.appendChild(d); 
