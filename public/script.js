@@ -63,24 +63,37 @@ function createItem(id, n, c, t) {
     return d;
 }
 
-// --- NEW MOBILE LOGIC ---
 function loadChat(t, id, n, el) {
     activeChat = { type: t, id };
     document.querySelectorAll('.item').forEach(i => i.classList.remove('active')); el.classList.add('active');
     document.getElementById('chat-title').innerText = n;
     document.getElementById('chat-status').innerText = (t === 'user' && onlineUsers.has(id)) ? 'Online' : '';
+    
+    // Clear Messages
     document.getElementById('messages').innerHTML = '';
     
-    // Toggle Mobile View
+    // REQUEST HISTORY
+    socket.emit('get_history', { target_id: id, is_group: t === 'group' });
+
+    // Mobile View Toggle
     document.body.classList.add('chat-open'); 
 }
 
 function closeChat() {
-    // Go back to list on mobile
     document.body.classList.remove('chat-open');
     activeChat = { type: null, id: null };
 }
-// ------------------------
+
+// --- NEW: DISPLAY HISTORY ---
+socket.on('history_loaded', (msgs) => {
+    const container = document.getElementById('messages');
+    container.innerHTML = ''; // Clear placeholder
+    
+    msgs.forEach(msg => {
+        // Reuse the logic for creating bubbles
+        renderSingleMessage(msg);
+    });
+});
 
 function sendMsg() {
     const i = document.getElementById('msg-input'), txt = i.value.trim();
@@ -94,12 +107,28 @@ socket.on('receive_message', msg => {
     const relevant = (msg.is_group && activeChat.type === 'group' && gid === aid) || (!msg.is_group && activeChat.type === 'user' && (sid === aid || rid === aid));
     
     if (relevant) {
-        const d = document.createElement('div'); d.className = `msg ${sid === mid ? 'sent' : 'received'}`;
-        let ticks = sid === mid ? '<span class="material-icons tick">done</span>' : '';
-        d.innerHTML = `${msg.content} <div class="meta">${msg.timestamp} ${ticks}</div>`;
-        const c = document.getElementById('messages'); c.appendChild(d); c.scrollTop = c.scrollHeight;
+        renderSingleMessage(msg);
     }
 });
+
+// Helper to render one bubble
+function renderSingleMessage(msg) {
+    const mid = parseInt(me.id);
+    const sid = parseInt(msg.sender_id);
+    
+    const d = document.createElement('div'); 
+    d.className = `msg ${sid === mid ? 'sent' : 'received'}`;
+    let ticks = sid === mid ? '<span class="material-icons tick">done</span>' : '';
+    
+    // Format timestamp nicely if possible, or use raw
+    let time = msg.timestamp;
+    if(time.includes('T')) time = new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    d.innerHTML = `${msg.content} <div class="meta">${time} ${ticks}</div>`;
+    const c = document.getElementById('messages'); 
+    c.appendChild(d); 
+    c.scrollTop = c.scrollHeight;
+}
 
 socket.on('user_status', ({ id, status }) => {
     status === 'online' ? onlineUsers.add(id) : onlineUsers.delete(id);
