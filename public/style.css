@@ -1,13 +1,4 @@
-:root {
-    --primary: #4F46E5; /* Professional Indigo */
-    --bg: #F3F4F6;
-    --sidebar: #ffffff;
-    --text: #1F2937;
-    --border: #E5E7EB;
-    --green-bubble: #DCFCE7;
-    --admin-bg: #FEF2F2;
-}
-
+:root { --primary: #4F46E5; --bg: #F3F4F6; --sidebar: #ffffff; --text: #1F2937; --border: #E5E7EB; --green-bubble: #DCFCE7; }
 body { margin: 0; font-family: 'Inter', sans-serif; height: 100vh; background: var(--bg); overflow: hidden; }
 
 /* Login */
@@ -22,69 +13,62 @@ button:hover { opacity: 0.9; }
 #login-error { color: red; margin-top: 10px; font-size: 13px; }
 
 /* App Layout */
-#app-view { display: flex; height: 100vh; }
+#app-view { display: flex; height: 100vh; position: relative; }
 .hidden { display: none !important; }
 
-/* Sidebar */
-.sidebar { width: 320px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+/* SIDEBAR */
+.sidebar { width: 320px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; }
 .sidebar-head { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-.sidebar-head h3 { margin: 0; font-size: 18px; color: var(--text); }
+.sidebar-head h3 { margin: 0; font-size: 18px; }
 #admin-badge { background: #DC2626; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-
 .tabs { display: flex; padding: 10px; gap: 5px; border-bottom: 1px solid var(--border); }
 .tabs button { flex: 1; background: transparent; color: #6B7280; padding: 8px; font-size: 13px; }
 .tabs button.active-tab { background: #EEF2FF; color: var(--primary); }
-.logout-icon { flex: 0; width: 40px; color: #EF4444; }
-
 .list-area { flex: 1; overflow-y: auto; }
-.item { padding: 15px; display: flex; align-items: center; cursor: pointer; border-bottom: 1px solid #f9f9f9; transition: 0.2s; }
+.item { padding: 15px; display: flex; align-items: center; cursor: pointer; border-bottom: 1px solid #f9f9f9; }
 .item:hover { background: #F9FAFB; }
 .item.active { background: #EEF2FF; border-left: 4px solid var(--primary); }
-.avatar { width: 40px; height: 40px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-weight: bold; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-weight: bold; font-size: 16px; flex-shrink: 0; }
 
-/* Admin Panel Styling */
+/* Admin */
 .admin-card { background: white; margin: 15px; padding: 15px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.admin-card h4 { margin: 0 0 10px 0; color: #374151; }
+.admin-card h4 { margin: 0 0 10px 0; }
 .admin-card input { margin-bottom: 10px; font-size: 13px; }
 .admin-card button { background: #10B981; font-size: 13px; padding: 8px; }
 
-/* Chat Area */
-.chat-area { flex: 1; display: flex; flex-direction: column; background: #fff; }
-header { height: 60px; border-bottom: 1px solid var(--border); padding: 0 20px; display: flex; align-items: center; }
-.header-info h3 { margin: 0; font-size: 16px; }
+/* CHAT AREA */
+.chat-area { flex: 1; display: flex; flex-direction: column; background: #fff; min-width: 0; transition: transform 0.3s ease; }
+header { height: 60px; border-bottom: 1px solid var(--border); padding: 0 15px; display: flex; align-items: center; gap: 10px; background: white; z-index: 10; }
+.back-btn { display: none; background: none; color: #374151; padding: 0; width: 40px; height: 40px; border-radius: 50%; }
+.header-info { flex: 1; overflow: hidden; }
+#chat-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; font-size: 16px; }
 #chat-status { font-size: 12px; color: #10B981; }
 
 #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #F9FAFB; }
-.msg { max-width: 65%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05); word-wrap: break-word; }
 .msg.sent { align-self: flex-end; background: var(--green-bubble); border-bottom-right-radius: 0; }
 .msg.received { align-self: flex-start; background: white; border-bottom-left-radius: 0; }
-.meta { display: block; text-align: right; font-size: 10px; color: #6B7280; margin-top: 4px; }
+.meta { display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 10px; color: #6B7280; margin-top: 4px; }
+.tick { font-size: 14px; vertical-align: middle; }
 
-footer { padding: 15px; background: white; border-top: 1px solid var(--border); display: flex; gap: 10px; }
-footer input { border-radius: 20px; background: #F3F4F6; border: none; padding: 12px 20px; }
-footer button { width: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-
+footer { padding: 10px; background: white; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+footer input { border-radius: 20px; background: #F3F4F6; border: none; padding: 12px 15px; width: 100%; }
+footer button { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .placeholder { text-align: center; margin-top: 100px; color: #9CA3AF; }
 .placeholder span { font-size: 48px; display: block; margin-bottom: 10px; }
 
-/* Add this to the bottom of style.css */
-
-.meta {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 4px; /* Space between time and tick */
-    font-size: 10px;
-    color: #6B7280;
-    margin-top: 4px;
-}
-
-.tick {
-    font-size: 14px; /* Size of the checkmark */
-    vertical-align: middle;
-}
-
-/* Color for read receipts (optional, future use) */
-.tick.read {
-    color: #3b82f6; /* Blue */
+/* --- MOBILE RESPONSIVE (THE 100CR LOGIC) --- */
+@media (max-width: 768px) {
+    .sidebar { width: 100%; position: absolute; height: 100%; z-index: 20; transform: translateX(0); }
+    .chat-area { width: 100%; position: absolute; height: 100%; z-index: 10; transform: translateX(100%); }
+    
+    /* When a chat is open */
+    body.chat-open .sidebar { transform: translateX(-20%); } /* Parallax effect */
+    body.chat-open .chat-area { transform: translateX(0); z-index: 30; }
+    
+    /* Back button */
+    .back-btn { display: flex; }
+    
+    /* Hide scrollbar on chat list for cleaner look */
+    .list-area::-webkit-scrollbar { display: none; }
 }
