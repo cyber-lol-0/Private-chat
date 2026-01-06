@@ -1,1 +1,85 @@
-a82b9dfdea4c4c7716a5861378349d2082d2792d
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alone Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="login-view">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+
+        <div class="glass-card">
+            <div class="logo">AC</div>
+            <h2>Alone Chat</h2>
+            <p class="subtitle">Secure. Private. Fast.</p>
+            
+            <div class="field">
+                <input type="text" id="login-user" placeholder="Username" autocomplete="off" onkeydown="handleKey(event, 'login')">
+            </div>
+            <div class="field">
+                <input type="password" id="login-pass" placeholder="Password" onkeydown="handleKey(event, 'login')">
+            </div>
+            
+            <button id="login-btn" onclick="doLogin()" onkeydown="handleKey(event, 'login')">Sign In</button>
+            <div id="login-error"></div>
+        </div>
+    </div>
+
+    <div id="app-view" class="hidden">
+        
+        <aside class="sidebar" id="sidebar-panel">
+            <div class="sidebar-head">
+                <h3>Alone Chat</h3>
+                <div id="admin-badge" class="hidden">ADMIN</div>
+            </div>
+            <div class="tabs">
+                <button onclick="showSection('chats')" class="active-tab">Chats</button>
+                <button onclick="showSection('admin')" id="admin-tab-btn" class="hidden">Admin</button>
+                <button onclick="logout()" class="logout-icon"><span class="material-icons">logout</span></button>
+            </div>
+            <div id="chat-list" class="list-area"></div>
+            
+            <div id="admin-panel" class="list-area hidden">
+                <div class="admin-card">
+                    <h4>Create User</h4>
+                    <input type="text" id="new-user-name" placeholder="Username" onkeydown="handleKey(event, 'admin_user')">
+                    <input type="text" id="new-user-pass" placeholder="Password" onkeydown="handleKey(event, 'admin_user')">
+                    <button onclick="adminCreateUser()">Create User</button>
+                </div>
+                <div class="admin-card">
+                    <h4>Create Group</h4>
+                    <input type="text" id="new-group-name" placeholder="Group Name" onkeydown="handleKey(event, 'admin_group')">
+                    <button onclick="adminCreateGroup()">Create Group</button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="chat-area" id="chat-panel">
+            <header>
+                <button class="back-btn mobile-only" onclick="closeChat()">
+                    <span class="material-icons">arrow_back</span>
+                </button>
+                <div class="header-info">
+                    <h3 id="chat-title">Select a Chat</h3>
+                    <span id="chat-status"></span>
+                </div>
+            </header>
+            <div id="messages">
+                <div class="placeholder"><span class="material-icons">forum</span><p>Start messaging</p></div>
+            </div>
+            <footer>
+                <input type="text" id="msg-input" placeholder="Message..." onkeydown="handleKey(event, 'chat')">
+                <button onclick="sendMsg()"><span class="material-icons">send</span></button>
+            </footer>
+        </main>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
