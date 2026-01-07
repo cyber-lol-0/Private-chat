@@ -1,18 +1,369 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
     <title>Alone Chat</title>
 
+
     <link rel="stylesheet" href="style.css">
+
 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+    <title>Alone Chat - Login</title>
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+
+    <style>
+
+
+        /* --- CSS STYLES --- */
+
+
+        * {
+
+
+            box-sizing: border-box;
+
+
+            margin: 0;
+
+
+            padding: 0;
+
+
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+
+        }
+
+
+
+
+
+        body {
+
+
+            background-color: #f3f4f6; /* Soft grey background */
+
+
+            display: flex;
+
+
+            justify-content: center;
+
+
+            align-items: center;
+
+
+            height: 100vh;
+
+
+        }
+
+
+
+
+
+        .login-container {
+
+
+            background-color: white;
+
+
+            padding: 2.5rem;
+
+
+            border-radius: 12px;
+
+
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+
+
+            width: 100%;
+
+
+            max-width: 400px;
+
+
+            text-align: center;
+
+
+        }
+
+
+
+
+
+        /* Lock Icon Styling */
+
+
+        .icon-wrapper {
+
+
+            width: 70px;
+
+
+            height: 70px;
+
+
+            background-color: #e0e7ff; /* Light indigo background */
+
+
+            border-radius: 50%;
+
+
+            display: flex;
+
+
+            align-items: center;
+
+
+            justify-content: center;
+
+
+            margin: 0 auto 1.5rem auto;
+
+
+            color: #4f46e5; /* Indigo icon color */
+
+
+            border: 2px solid white;
+
+
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+
+        }
+
+
+
+
+
+        /* SVG Lock Dimensions */
+
+
+        .icon-wrapper svg {
+
+
+            width: 35px;
+
+
+            height: 35px;
+
+
+        }
+
+
+
+
+
+        /* "Alone Chat" Title */
+
+
+        h1 {
+
+
+            color: #111827;
+
+
+            font-size: 1.8rem;
+
+
+            font-weight: 700;
+
+
+            margin-bottom: 0.5rem;
+
+
+        }
+
+
+
+
+
+        .subtitle {
+
+
+            color: #6b7280;
+
+
+            font-size: 0.95rem;
+
+
+            margin-bottom: 2rem;
+
+
+        }
+
+
+
+
+
+        /* Form Styling */
+
+
+        .form-control {
+
+
+            margin-bottom: 1.25rem;
+
+
+            text-align: left;
+
+
+        }
+
+
+
+
+
+        label {
+
+
+            display: block;
+
+
+            margin-bottom: 0.5rem;
+
+
+            color: #374151;
+
+
+            font-size: 0.9rem;
+
+
+            font-weight: 600;
+
+
+        }
+
+
+
+
+
+        input {
+
+
+            width: 100%;
+
+
+            padding: 0.75rem 1rem;
+
+
+            border: 1px solid #d1d5db;
+
+
+            border-radius: 6px;
+
+
+            font-size: 1rem;
+
+
+            transition: all 0.2s;
+
+
+        }
+
+
+
+
+
+        input:focus {
+
+
+            outline: none;
+
+
+            border-color: #4f46e5;
+
+
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+
+
+        }
+
+
+
+
+
+        /* Login Button */
+
+
+        .btn {
+
+
+            width: 100%;
+
+
+            padding: 0.75rem;
+
+
+            background-color: #4f46e5;
+
+
+            color: white;
+
+
+            border: none;
+
+
+            border-radius: 6px;
+
+
+            font-size: 1rem;
+
+
+            font-weight: 600;
+
+
+            cursor: pointer;
+
+
+            transition: background-color 0.2s;
+
+
+            margin-top: 10px;
+
+
+        }
+
+
+
+
+
+        .btn:hover {
+
+
+            background-color: #4338ca;
+
+
+        }
+
+
+    </style>
 
 </head>
 
 <body>
+
 
 
 
@@ -27,20 +378,14 @@
 
 
 
+
         <div class="glass-card">
+
 
             <div class="logo">AC</div>
 
+
             <h2>Welcome Back</h2>
-
-
-            <div class="field"><input type="text" id="login-user" placeholder="Username" onkeydown="handleKey(event, 'login')"></div>
-
-
-            <div class="field"><input type="password" id="login-pass" placeholder="Password" onkeydown="handleKey(event, 'login')"></div>
-
-
-            <button id="login-btn" onclick="doLogin()" onkeydown="handleKey(event, 'login')">Log In</button>
 
 
             <p class="subtitle">Secure. Private. Fast.</p>
@@ -72,54 +417,211 @@
 
             <button id="login-btn" onclick="doLogin()" onkeydown="handleKey(event, 'login')">Sign In</button>
 
+
             <div id="login-error"></div>
+
+
+    <div class="login-container">
+
+
+        <div class="icon-wrapper">
+
+
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+
+                <path d="M12 15V17M6 21H18C19.1046 21 20 20.1046 20 19V10C20 8.89543 19.1046 8 18 8H6C4.89543 8 4 8.89543 4 10V19C4 20.1046 4.89543 21 6 21ZM16 8V5C16 2.79086 14.2091 1 12 1C9.79086 1 8 2.79086 8 5V8H16Z" 
+
+
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+
+            </svg>
 
         </div>
 
+
     </div>
 
-@@ -55,22 +65,21 @@
+
+
+
+    <div id="app-view" class="hidden">
+
+
+        
+
+
+        <aside class="sidebar" id="sidebar-panel">
+
+
+            <div class="sidebar-head">
+
+
+                <h3>Alone Chat</h3>
+
+
+                <div id="admin-badge" class="hidden">ADMIN</div>
+
+
+            </div>
+
+
+            <div class="tabs">
+
+
+                <button onclick="showSection('chats')" class="active-tab">Chats</button>
+
+
+                <button onclick="showSection('admin')" id="admin-tab-btn" class="hidden">Admin</button>
+
+
+                <button onclick="logout()" class="logout-icon"><span class="material-icons">logout</span></button>
+
+
+            </div>
+
+
+            <div id="chat-list" class="list-area"></div>
+
+
+            
+
+
+            <div id="admin-panel" class="list-area hidden">
+
+
+                <div class="admin-card">
+
+
+                    <h4>Create User</h4>
+
+
+                    <input type="text" id="new-user-name" placeholder="Username" onkeydown="handleKey(event, 'admin_user')">
+
+
+                    <input type="text" id="new-user-pass" placeholder="Password" onkeydown="handleKey(event, 'admin_user')">
+
+
+                    <button onclick="adminCreateUser()">Create User</button>
+
+
+                </div>
+
+
+                <div class="admin-card">
+
+
+                    <h4>Create Group</h4>
+
+
+                    <input type="text" id="new-group-name" placeholder="Group Name" onkeydown="handleKey(event, 'admin_group')">
+
+
+                    <button onclick="adminCreateGroup()">Create Group</button>
+
+
+                </div>
+
+
+            </div>
+
+
+        </aside>
+
+
+
+
+
+        <main class="chat-area" id="chat-panel">
+
+
+            <header>
+
 
                 <button class="back-btn mobile-only" onclick="closeChat()">
 
+
                     <span class="material-icons">arrow_back</span>
+
 
                 </button>
 
 
-
-
                 <div class="header-info">
+
 
                     <h3 id="chat-title">Select a Chat</h3>
 
+
                     <span id="chat-status"></span>
+
 
                 </div>
 
+
             </header>
+
 
             <div id="messages">
 
+
                 <div class="placeholder"><span class="material-icons">forum</span><p>Start messaging</p></div>
+
+
+        <h1>Alone Chat</h1>
+
+
+        <p class="subtitle">Enter your username to join</p>
+
+
+
+
+
+        <form action="chat.html">
+
+
+            <div class="form-control">
+
+
+                <label for="username">Username</label>
+
+
+                <input type="text" name="username" id="username" placeholder="Enter username..." required>
 
             </div>
 
+
             <footer>
+
 
                 <input type="text" id="msg-input" placeholder="Message..." onkeydown="handleKey(event, 'chat')">
 
+
                 <button onclick="sendMsg()"><span class="material-icons">send</span></button>
+
 
             </footer>
 
+
         </main>
+
+
+            <button type="submit" class="btn">Join Chat</button>
+
+
+        </form>
 
     </div>
 
+
     <script src="/socket.io/socket.io.js"></script>
 
+
     <script src="script.js"></script>
+
+
+
 
 </body>
 
